@@ -1,3 +1,4 @@
+// a[x...]
 struct OpenEnd {
     let start: Int
 }
@@ -6,15 +7,17 @@ postfix operator ... {}
 postfix func ...(index: Int) -> OpenEnd {
     return OpenEnd(start: index)
 }
-
+// a[...x]
 struct OpenStart {
     let end: Int
 }
+
 prefix operator ... {}
 prefix func ...(index: Int) -> OpenStart{
     return OpenStart(end: index)
 }
 
+// a[x...y], a[-x...y], a[x...-y], a[-x...-y]
 struct ClosedRange {
     let start: Int
     let end: Int
@@ -24,34 +27,47 @@ func ...(startIndex: Int, endIndex: Int) -> ClosedRange {
     return ClosedRange(start: startIndex, end: endIndex)
 }
 
+func ..<(startIndex: Int, endIndex: Int) -> ClosedRange {
+    return ClosedRange(start: startIndex, end: endIndex-1)
+}
+
+
 //The expression 1... now creates an OpenEnd with start = 1.
 //Now, we add an extension to Array so we can use OpenEnd in a subscript.
 
 extension Array {
-    subscript (openEnd: OpenEnd) -> Slice<Element> {
-        return self[openEnd.start...self.count-1]
+    subscript (oE: OpenEnd) -> Slice<Element> {
+        return self[oE.start...self.count-1]
     }
-    subscript (openStart: OpenStart) -> Slice<Element> {
-        return self[0...openStart.end]
+    subscript (oS: OpenStart) -> Slice<Element> {
+        return self[0...oS.end]
     }
-    subscript(closedRange: ClosedRange) -> Slice<Element> {
-        var start = closedRange.start
-            var end   = closedRange.end
-            if start < 0{
-                start = self.count   + start
-            }
-            if end < 0{
-                end = self.count - 1 + end
-            }
-            return self[start..<end+1]
+    subscript(cR: ClosedRange) -> Slice<Element> {
+        let start = cR.start >= 0 ? cR.start : self.count + cR.start
+        let end   = cR.end   >= 0 ? cR.end   : self.count + cR.end - 1
+
+        var r: Slice<Element> = []
+        for var i = start ; i <= end ; i+=1{
+            r.append(self[i])
+        }
+        return r
     }
 }
 
 let x = [0,1,2,3,4,5,6,7,8,9]
-let y = [4...]
-let z = x[3...5]
-let c = x[3...(-1)]
-let d = x[-3...(-1)]
-let e = x[(-1)...]
-let f = x[5...]
-let g = x[...3]
+
+let a = x[4...]
+let b = x[(-3)...]
+
+let c = x[...6]
+let d = x[...(-4)]
+
+let e = x[2...5]
+let f = x[3...(-1)]
+let g = x[(-5)...8]
+let h = x[(-5)...(-2)]
+
+let i = x[2..<5]
+let j = x[3..<(-1)]
+let k = x[(-5)..<8]
+let l = x[(-5)..<(-2)]
